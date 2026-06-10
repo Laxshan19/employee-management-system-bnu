@@ -54,6 +54,78 @@ app.post("/login", (req, res) => {
   });
 });
 
+//Employe Route
+// create employee
+app.post("/employees", (req, res) => {
+  const { name, email, password, role, department } = req.body;
+
+  const sql =
+    "INSERT INTO users (name, email, password, role, department) VALUES (?, ?, ?, ?, ?)";
+
+  db.query(sql, [name, email, password, role, department], (err, result) => {
+    if (err) return res.json(err);
+
+    res.json({
+      message: "Employee added successfully",
+      id: result.insertId
+    });
+  });
+});
+
+// get all employees
+app.get("/employees", (req, res) => {
+  const sql = "SELECT * FROM users";
+
+  db.query(sql, (err, result) => {
+    if (err) return res.json(err);
+
+    res.json(result);
+  });
+});
+
+
+app.get("/employees/:id", (req, res) => {
+  const sql = "SELECT * FROM users WHERE id = ?";
+
+  db.query(sql, [req.params.id], (err, result) => {
+    if (err) return res.json(err);
+
+    if (result.length === 0) {
+      return res.status(404).json({ message: "Employee not found" });
+    }
+
+    res.json(result[0]);
+  });
+});
+// update employee
+app.put("/employees/:id", (req, res) => {
+  const { name, email, role, department } = req.body;
+
+  const sql =
+    "UPDATE users SET name=?, email=?, role=?, department=? WHERE id=?";
+
+  db.query(
+    sql,
+    [name, email, role, department, req.params.id],
+    (err, result) => {
+      if (err) return res.json(err);
+
+      res.json({ message: "Employee updated successfully" });
+    }
+  );
+});
+
+// delete emplyee
+app.delete("/employees/:id", (req, res) => {
+  const sql = "DELETE FROM users WHERE id = ?";
+
+  db.query(sql, [req.params.id], (err, result) => {
+    if (err) return res.json(err);
+
+    res.json({ message: "Employee deleted successfully" });
+  });
+});
+
 // USERS ROUTE
 app.get("/users", (req, res) => {
   db.query("SELECT * FROM users", (err, result) => {
