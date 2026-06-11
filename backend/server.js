@@ -196,6 +196,100 @@ app.get("/leave/:user_id", (req, res) => {
   });
 });
 
+
+// check_IN API
+app.post("/attendance/checkin", (req, res) => {
+  const { user_id } = req.body;
+
+  const date = new Date().toISOString().split("T")[0];
+  const time = new Date().toTimeString().split(" ")[0];
+
+  const sql =
+    "INSERT INTO attendance (user_id, date, check_in) VALUES (?, ?, ?)";
+
+  db.query(sql, [user_id, date, time], (err, result) => {
+    if (err) return res.json(err);
+
+    res.json({
+      message: "Check-in successful"
+    });
+  });
+});
+
+// check_OUT API
+app.post("/attendance/checkout", (req, res) => {
+  const { user_id } = req.body;
+
+  const date = new Date().toISOString().split("T")[0];
+  const checkout = new Date().toTimeString().split(" ")[0];
+
+  const getSql =
+    "SELECT * FROM attendance WHERE user_id = ? AND date = ?";
+
+  db.query(getSql, [user_id, date], (err, result) => {
+    if (err) return res.json(err);
+
+    if (result.length === 0) {
+      return res.json({ message: "No check-in found" });
+    }
+
+    const checkIn = result[0].check_in;
+
+    // 🟢 SIMPLE SAFE CALCULATION
+    const [inH, inM, inS] = checkIn.split(":").map(Number);
+    const [outH, outM, outS] = checkout.split(":").map(Number);
+
+    let totalHours = outH - inH + (outM - inM) / 60;
+
+    if (totalHours < 0) totalHours = 0;
+
+    totalHours = totalHours.toFixed(2);
+
+    const updateSql =
+      "UPDATE attendance SET check_out = ?, total_hours = ? WHERE user_id = ? AND date = ?";
+
+    db.query(
+      updateSql,
+      [checkout, totalHours, user_id, date],
+      (err2) => {
+        if (err2) return res.json(err2);
+
+        res.json({
+          message: "Check-out successful",
+          total_hours: totalHours
+        });
+      }
+    );
+  });
+});
+
+//Get attenadce records (admin view)
+app.get("/attendance", (req, res) => {
+  const sql = `
+    SELECT a.*, u.name 
+    FROM attendance a
+    JOIN users u ON a.user_id = u.id
+  `;
+
+  db.query(sql, (err, result) => {
+    if (err) return res.json(err);
+
+    res.json(result);
+  });
+});
+
+// get attendace records for a specific user (employee view)
+app.get("/attendance/:user_id", (req, res) => {
+  const sql = "SELECT * FROM attendance WHERE user_id = ?";
+
+  db.query(sql, [req.params.user_id], (err, result) => {
+    if (err) return res.json(err);
+
+    res.json(result);
+  });
+});
+
+
 // START SERVER (KEEP AT BOTTOM)
 app.listen(5000, () => {
   console.log("Server running on port 5000");
