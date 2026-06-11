@@ -137,6 +137,65 @@ app.get("/users", (req, res) => {
   });
 });
 
+//leave request route
+// create leave request(employee view)
+app.post("/leave", (req, res) => {
+  const { user_id, leave_type, start_date, end_date } = req.body;
+
+  const sql =
+    "INSERT INTO leave_requests (user_id, leave_type, start_date, end_date, status) VALUES (?, ?, ?, ?, 'pending')";
+
+  db.query(sql, [user_id, leave_type, start_date, end_date], (err, result) => {
+    if (err) return res.json(err);
+
+    res.json({
+      message: "Leave request submitted",
+      id: result.insertId
+    });
+  });
+});
+
+// get all leave requests(admin view)
+app.get("/leave", (req, res) => {
+  const sql = `
+    SELECT lr.*, u.name 
+    FROM leave_requests lr
+    JOIN users u ON lr.user_id = u.id
+  `;
+
+  db.query(sql, (err, result) => {
+    if (err) return res.json(err);
+
+    res.json(result);
+  });
+});
+
+// update leave request status (admin view)
+app.put("/leave/:id", (req, res) => {
+  const { status } = req.body; // approved or rejected
+
+  const sql = "UPDATE leave_requests SET status = ? WHERE id = ?";
+
+  db.query(sql, [status, req.params.id], (err, result) => {
+    if (err) return res.json(err);
+
+    res.json({
+      message: `Leave ${status} successfully`
+    });
+  });
+});
+
+// get leave request for a specific user (employee view)
+app.get("/leave/:user_id", (req, res) => {
+  const sql = "SELECT * FROM leave_requests WHERE user_id = ?";
+
+  db.query(sql, [req.params.user_id], (err, result) => {
+    if (err) return res.json(err);
+
+    res.json(result);
+  });
+});
+
 // START SERVER (KEEP AT BOTTOM)
 app.listen(5000, () => {
   console.log("Server running on port 5000");
